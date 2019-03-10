@@ -1,0 +1,60 @@
+from urllib.request import urlopen,Request,urlretrieve
+from urllib.error import HTTPError,URLError
+from bs4 import BeautifulSoup
+
+i = 0
+addrs = []
+def address(address):
+    if address.startswith('https://'):
+        return address
+    else:
+        address = 'https://www.' + address
+        return address
+
+def getInternallink(bsObj):
+    Internallink = []
+    for link in bsObj.findAll('a'):
+        if link.attrs['href'] is not None:
+            if link.attrs['href'] not in Internallink:
+                Internallink.append(link.attrs['href'])
+    return Internallink
+
+def downLoadImg(bsObj):
+    global addrs
+    global i
+    for image in bsObj.findAll('img'):
+        if image.attrs['src'] is not None:
+            if not image.attrs['src'].startswith('https:'):
+                addr = 'http'+image.attrs['src']
+            else:
+                addr = image.attrs['src']
+            if addr not in addrs:
+                addrs.append(addr)
+                try:
+                    urlretrieve(addr,'H:\Spider\logo'+str(i)+'.jpg')
+                    i = i+1
+                except Exception as e:
+                    print(e)
+
+def downLoadAllImage(baseurl):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36'
+    }
+    try:
+        rep = Request(baseurl, headers=headers)
+        html = urlopen(rep)
+        #print(html.read().decode())
+    except URLError as e:
+        print('出错')
+    bsObj = BeautifulSoup(html)
+    downLoadImg(bsObj)
+    links = getInternallink(bsObj)
+    for link in links:
+        if link.startswith('http:') or link.startswith('https:'):
+            print(link)
+            downLoadAllImage(link)
+
+
+
+baseurl = 'https://tieba.baidu.com/index.html'
+downLoadAllImage(baseurl)
